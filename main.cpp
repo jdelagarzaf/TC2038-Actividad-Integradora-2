@@ -128,7 +128,7 @@ inline int safe_sum(int a, int b) {
     return a + b;
 }
 
-int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>>& path) {
+int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>>& nextBest) {
     // se cancelan los bits de las colonias centrales, solo revisamos las no centrales
     if ((mask & nonCentralMask) == nonCentralMask) return cost[pos][startingColonia];
 
@@ -143,7 +143,7 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector
         if ((mask & (1 << i)) == 0) {
             if (cost[pos][i] == INT_MAX) continue; // Poda si no hay camino entre pos e i
             // If city i is not visited, visit it and update the mask
-            int candidate = safe_sum(cost[pos][i], totalCost((mask | (1 << i)), i, n, cost, dp, nonCentralMask, startingColonia, path));
+            int candidate = safe_sum(cost[pos][i], totalCost((mask | (1 << i)), i, n, cost, dp, nonCentralMask, startingColonia, nextBest));
             if (candidate < ans) {
                 ans = candidate;
                 bestNext = i;
@@ -151,7 +151,7 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector
         }
     }
 
-    path[mask][pos] = bestNext;
+    nextBest[mask][pos] = bestNext;
     return memo = ans;
 }
 
@@ -179,28 +179,28 @@ void rutaOptima(Graph& graph, ofstream& outFile) {
     }
 
     vector<vector<int>> dp(1 << graph.V, vector<int>(graph.V, -1));
-    vector<vector<int>> path(1 << graph.V, vector<int>(graph.V, -1));
+    vector<vector<int>> nextBest(1 << graph.V, vector<int>(graph.V, -1));
 
     int startMask = (1 << startingColonia);
 
-    int costo = totalCost(startMask, startingColonia, graph.V, cost, dp, nonCentralMask, startingColonia, path);
+    int costo = totalCost(startMask, startingColonia, graph.V, cost, dp, nonCentralMask, startingColonia, nextBest);
 
     // Reconstruir la ruta
     int pos = startingColonia;
     int first = true;
-    vector<int> ruta;
-    ruta.push_back(startingColonia); // agregar el punto de inicio
+    vector<int> path;
+    path.push_back(startingColonia); // agregar el punto de inicio
     while ((startMask & nonCentralMask) != nonCentralMask) {
-        int nxt = path[startMask][pos];
-        startMask |= (1 << nxt);
-        pos = nxt;
-        ruta.push_back(pos);
+        int next = nextBest[startMask][pos];
+        startMask |= (1 << next);
+        pos = next;
+        path.push_back(pos);
     }
-    ruta.push_back(startingColonia); // agregar el punto final
+    path.push_back(startingColonia); // agregar el punto final
 
     // imprimir la ruta en orden
-    for (int i = ruta.size() - 1; i >= 0; i--) {
-        outFile << coloniaNameMap[ruta[i]].nombre;
+    for (int i = path.size() - 1; i >= 0; i--) {
+        outFile << coloniaNameMap[path[i]].nombre;
         if (i != 0) {
             outFile << " - ";
         }
