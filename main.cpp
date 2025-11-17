@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <algorithm>
+#include <climits>
 
 using namespace std;
 
@@ -36,6 +37,14 @@ struct Graph{
 
 unordered_map<string, int> coloniaIndexMap;
 unordered_map<int, Colonia> coloniaNameMap;
+
+// Algoritmo de Prim
+// 1 – Cableado óptimo de nueva conexión.
+/*
+    Deberá el programa debe desplegar cuál es la forma óptima de cablear con una nueva fibra óptica conectando colonias 
+    de tal forma que se pueda compartir información entre cuales quiera dos colonias en el menor costo pósible, 
+    aprovechando que ya existen conexiones del nuevo cableado (las cuales no deben incluir en el costo)
+*/
 
 struct DisjointSets{
 	int *parent, *rank;
@@ -71,13 +80,6 @@ struct DisjointSets{
 	}
 };
 
-// Algoritmo de Prim
-// 1 – Cableado óptimo de nueva conexión.
-/*
-    Deberá el programa debe desplegar cuál es la forma óptima de cablear con una nueva fibra óptica conectando colonias 
-    de tal forma que se pueda compartir información entre cuales quiera dos colonias en el menor costo pósible, 
-    aprovechando que ya existen conexiones del nuevo cableado (las cuales no deben incluir en el costo)
-*/
 void cableadoOptimo(Graph& graph, ofstream& outFile) {
     sort(graph.edges.begin(), graph.edges.end());
 	DisjointSets ds(graph.V);
@@ -119,8 +121,92 @@ void cableadoOptimo(Graph& graph, ofstream& outFile) {
     regresa a la colonia origen? Tomar en cuenta que muchas veces el costo mínimo puede pasar por una colonia central o 
     más intermedias. El programa debe desplegar la ruta a considerar así como el costo.
 */
+
+inline int safe_sum(int a, int b) {
+    if (a == INT_MAX || b == INT_MAX) return INT_MAX;   // any INF makes INF
+    if (a > INT_MAX - b) return INT_MAX;                // would overflow → clamp to INF
+    return a + b;
+}
+
+int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>>& path) {
+    // se cancelan los bits de las colonias centrales, solo revisamos las no centrales
+    if ((mask & nonCentralMask) == nonCentralMask) return cost[pos][startingColonia];
+
+    int &memo = dp[mask][pos];
+    if (memo != -1) return memo;
+
+    int ans = INT_MAX;
+    int bestNext = -1;
+
+    // Try visiting every city that has not been visited yet
+    for (int i = 0; i < n; i++) {
+        if ((mask & (1 << i)) == 0) {
+            if (cost[pos][i] == INT_MAX) continue; // Poda si no hay camino entre pos e i
+            // If city i is not visited, visit it and update the mask
+            int candidate = safe_sum(cost[pos][i], totalCost((mask | (1 << i)), i, n, cost, dp, nonCentralMask, startingColonia, path));
+            if (candidate < ans) {
+                ans = candidate;
+                bestNext = i;
+            }
+        }
+    }
+
+    path[mask][pos] = bestNext;
+    return memo = ans;
+}
+
 void rutaOptima(Graph& graph, ofstream& outFile) {
-    
+    // build cost matrix
+    vector<vector<int>> cost(graph.V, vector<int>(graph.V, INT_MAX));
+    for (int i = 0; i < graph.V; i++) {
+        cost[i][i] = 0;
+    }
+    for (auto it:graph.edges) {
+        cost[it.second.first][it.second.second] = it.first;
+        cost[it.second.second][it.second.first] = it.first;
+    }
+
+    int nonCentralMask = 0;
+    int startingColonia = -1;
+    for (int i = 0; i < graph.V; i++) {
+        if (coloniaNameMap[i].esCentral == 0) {
+            nonCentralMask |= (1 << i);
+            // seleccionar la primera colonia no central como punto de inicio
+            if (startingColonia == -1) {
+                startingColonia = i;
+            }
+        }
+    }
+
+    vector<vector<int>> dp(1 << graph.V, vector<int>(graph.V, -1));
+    vector<vector<int>> path(1 << graph.V, vector<int>(graph.V, -1));
+
+    int startMask = (1 << startingColonia);
+
+    int costo = totalCost(startMask, startingColonia, graph.V, cost, dp, nonCentralMask, startingColonia, path);
+
+    // Reconstruir la ruta
+    int pos = startingColonia;
+    int first = true;
+    vector<int> ruta;
+    ruta.push_back(startingColonia); // agregar el punto de inicio
+    while ((startMask & nonCentralMask) != nonCentralMask) {
+        int nxt = path[startMask][pos];
+        startMask |= (1 << nxt);
+        pos = nxt;
+        ruta.push_back(pos);
+    }
+    ruta.push_back(startingColonia); // agregar el punto final
+
+    // imprimir la ruta en orden
+    for (int i = ruta.size() - 1; i >= 0; i--) {
+        outFile << coloniaNameMap[ruta[i]].nombre;
+        if (i != 0) {
+            outFile << " - ";
+        }
+    }
+
+    outFile << endl << endl << "La Ruta Óptima tiene un costo total de: " << costo << endl;
 }
 
 // Algoritmo de Dijkstra? o Travelling Salesman modificado tal vez
