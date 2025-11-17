@@ -227,6 +227,24 @@ void caminosCentrales(Graph& graph, ofstream& outFile) {
 */
 void conexionNuevasColonias(Graph& graph, ofstream& outFile) {
 
+    // Las colonias nuevas son estas
+    for (int i = graph.V; i < graph.V + graph.Q; i++){
+        // Explicación: V tiene el número de colonias iniciales,
+        // Q tiene el número de nuevas colonias
+        // Entonces las nuevas colonias van de V a V+Q-1
+
+        Colonia colonia = coloniaNameMap[i]; // Asi lees la información de la colonia
+        colonia.nombre; // Nombre de la colonia
+        colonia.x; // Coordenada x
+        colonia.y; // Coordenada y
+
+
+        int index = coloniaIndexMap[colonia.nombre]; // Asi lees el índice de la colonia
+
+        // Yo maneje todo con indices y namas traduci a a nombre cuando hacia output
+
+    }
+
 }
 
 Graph readInputsAndProcess() {
