@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <climits>
 
+#define INF INT_MAX
+
 using namespace std;
 
 struct Colonia {
@@ -209,13 +211,87 @@ void rutaOptima(Graph& graph, ofstream& outFile) {
     outFile << endl << endl << "La Ruta Óptima tiene un costo total de: " << costo << endl;
 }
 
-// Algoritmo de Dijkstra? o Travelling Salesman modificado tal vez
+// Algoritmo de Floyd Warshall
 // 3 – Caminos más cortos entre centrales.
 /*
     El programa deberá generar la ruta óptima para ir de todas las centrales entre si, 
     se puede pasar por una colonia no central.
 */
+
+//Encontrar los caminos mas cortos de una central a otra para todas las centrales
+
+vector<int> mergePaths(vector<int>& path1, vector<int>& path2,int k){
+    vector<int> merge = path1;
+    merge.push_back(k);
+    for(int& node : path2){
+        merge.push_back(node);
+    }
+    return merge;
+}
+
+void floydWarshall(vector<vector<int>> &dist, vector<vector<vector<int>>>& distAux) {
+    int n = dist.size();
+    for(int k = 0; k < n; k++) { //nodo base
+        for(int i = 0; i < n; i++) { //nodo origen
+            for(int j = 0; j < n; j++) { //nodo destino
+                if(dist[i][k] < INF && dist[k][j] < INF) //Si hay conexión entre el nodo base k y los dos nodos i,j
+                    if(dist[i][j] > dist[i][k] + dist[k][j]){
+                        dist[i][j] =  dist[i][k] + dist[k][j]; //Nueva distancia
+                        distAux[i][j] = (mergePaths(distAux[i][k],distAux[k][j],k));
+                    }
+            }
+        }
+    }
+}
+
 void caminosCentrales(Graph& graph, ofstream& outFile) {
+    vector<vector<int>> dist (graph.V, vector<int>(graph.V, INF));
+    
+    for(int i = 0; i < graph.V; i++){
+        dist[i][i] = 0;
+    }
+
+    vector<vector<vector<int>>> distAux (graph.V, vector<vector<int>>(graph.V));
+    int cost;
+    vector<int> coloniasIntermedias;
+    pair<int,int> currEdge;
+    int currCost;
+    for(pair<int,pair<int,int>> edge: graph.edges){
+        currCost = edge.first;
+        currEdge = edge.second;
+        dist[currEdge.first][currEdge.second] = currCost;
+        dist[currEdge.second][currEdge.first] = currCost;
+    }
+
+    for(int i = 0; i < dist.size(); i++){
+        for(int j = 0; j < dist.size(); j++){
+            if(dist[i][j] == INF){
+                cout << "INF" << " ";
+            } else{
+                cout << dist[i][j] << " ";
+            }
+        }
+        cout << endl;
+    }
+
+    floydWarshall(dist, distAux);
+
+    for(int coloniaOrigenIdx = 0; coloniaOrigenIdx < graph.V; coloniaOrigenIdx++){
+        for(int coloniaDestinoIdx = coloniaOrigenIdx + 1; coloniaDestinoIdx < graph.V; coloniaDestinoIdx++){
+            if(coloniaNameMap[coloniaOrigenIdx].esCentral && coloniaNameMap[coloniaDestinoIdx].esCentral){
+                coloniasIntermedias = distAux[coloniaOrigenIdx][coloniaDestinoIdx];
+                cost = dist[coloniaOrigenIdx][coloniaDestinoIdx];
+                outFile << coloniaNameMap[coloniaOrigenIdx].nombre << " - ";
+                for(int& coloniaIntermedia : coloniasIntermedias){
+                    outFile << coloniaNameMap[coloniaIntermedia].nombre << " - ";
+                }
+                outFile << coloniaNameMap[coloniaDestinoIdx].nombre;
+                outFile << " (" << cost << ")" << endl;
+            }
+        }
+    }
+
+
 
 }
 
@@ -318,3 +394,5 @@ int main() {
     outFile.close();
     return 0;
 }
+
+//c++ -std=c++11 -o main main.cpp
