@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <climits>
 #include <cfloat>
+#include <cmath>
 
 #define INF INT_MAX
 
@@ -41,7 +42,7 @@ struct Graph{
 unordered_map<string, int> coloniaIndexMap;
 unordered_map<int, Colonia> coloniaNameMap;
 
-// Algoritmo de Prim
+// Algoritmo de Kruskal
 // 1 – Cableado óptimo de nueva conexión.
 /*
     Deberá el programa debe desplegar cuál es la forma óptima de cablear con una nueva fibra óptica conectando colonias 
