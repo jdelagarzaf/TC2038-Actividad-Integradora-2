@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <climits>
+#include <cfloat>
 
 #define INF INT_MAX
 
@@ -95,9 +96,9 @@ void cableadoOptimo(Graph& graph, ofstream& outFile) {
     vector<pair<int, pair<int, int>>> selectedEdges;
 	int costMSTKruskal = 0;
 	for(auto it:graph.edges) {
-		int p1 = ds.find(it.second.first);
-		int p2 = ds.find(it.second.second);
-		if (p1 != p2) {
+		int col1 = ds.find(it.second.first);
+		int col2 = ds.find(it.second.second);
+		if (col1 != col2) {
 			costMSTKruskal += it.first;
             selectedEdges.push_back(it);
 			ds.merge(it.second.first, it.second.second);
@@ -292,32 +293,47 @@ void caminosCentrales(Graph& graph, ofstream& outFile) {
 
 }
 
-// Algoritmo del punto más cercano
+// Ordenamiento y búsqueda binaria
 // 4 – Conexión de nuevas colonias.
 /*
     Se leera a continuación una serie de puntos cartecianos en el mapa de la ciudad en donde se planea conectar nuevas colonias, 
     y se deberá decir cual es la colina y punto carteciano más cercano con el cual se debe conectar.
 */
-void conexionNuevasColonias(Graph& graph, ofstream& outFile) {
-
-    // Las colonias nuevas son estas
-    for (int i = graph.V; i < graph.V + graph.Q; i++){
-        // Explicación: V tiene el número de colonias iniciales,
-        // Q tiene el número de nuevas colonias
-        // Entonces las nuevas colonias van de V a V+Q-1
-
-        Colonia colonia = coloniaNameMap[i]; // Asi lees la información de la colonia
-        colonia.nombre; // Nombre de la colonia
-        colonia.x; // Coordenada x
-        colonia.y; // Coordenada y
 
 
-        int index = coloniaIndexMap[colonia.nombre]; // Asi lees el índice de la colonia
 
-        // Yo maneje todo con indices y namas traduci a a nombre cuando hacia output
+double dist( Colonia& col1,  Colonia& col2){
+    double dx = col1.x - col2.x;
+    double dy = col1.y - col2.y;
+    return sqrt(dx * dx + dy * dy);
+}
 
+//Complejidad: O(v)
+int conexionMasCercana(Graph& graph, Colonia coloniaNueva){
+    int minColoniaIdx = 0;
+    int minDist = dist(coloniaNameMap[0], coloniaNueva);
+    Colonia currColonia;
+    int currDist;
+    for(int colIdx = 1; colIdx < graph.V; colIdx++){
+        currColonia = coloniaNameMap[colIdx];
+        currDist = dist(coloniaNameMap[colIdx], coloniaNueva);
+        if(currDist < minDist){
+            minColoniaIdx = colIdx;
+            minDist = currDist;
+        }
     }
+    return minColoniaIdx;
+}
 
+//Complejidad: O(q * v)
+//Fuerza bruta es mejor que divide and conquer porque se conoce el punto de referencia
+void conexionNuevasColonias(Graph& graph, ofstream& outFile) {
+    for (int i = graph.V; i < graph.V + graph.Q; i++){
+        Colonia coloniaNueva = coloniaNameMap[i];
+        int coloniaCercanaIdx = conexionMasCercana(graph, coloniaNueva);
+        Colonia coloniaCercana = coloniaNameMap[coloniaCercanaIdx];
+        outFile << coloniaNueva.nombre << " debe conectarse con " << coloniaCercana.nombre << endl;
+    }
 }
 
 Graph readInputsAndProcess() {

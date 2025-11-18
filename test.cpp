@@ -122,6 +122,7 @@ void caminosCentrales(vector<vector<int>> dist) {
 
 }
 
+
 int main(){
 
     vector<vector<int>> dist = {
