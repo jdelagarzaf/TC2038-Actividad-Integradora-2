@@ -17,6 +17,7 @@ La Ruta Óptima tiene un costo total de: 123
 -------------------
 3 – Caminos más cortos entre centrales.
 
+LindaVista - Roma - AltaVista - Tecnologico (50)
 
 -------------------
 4 – Conexión de nuevas colonias.
