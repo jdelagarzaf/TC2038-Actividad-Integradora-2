@@ -264,19 +264,26 @@ void rutaOptima(Graph &graph, ofstream &outFile)
 
 // Encontrar los caminos mas cortos de una central a otra para todas las centrales
 
-// Junta el recorrido de i->k y de k-j
-vector<int> mergePaths(vector<int> &path1, vector<int> &path2, int k)
-{
-    vector<int> merge = path1;
-    merge.push_back(k);
-    for (int &node : path2)
-    {
-        merge.push_back(node);
+
+void printPath(int origin, int destination, vector<vector<int>> &distAux, ofstream &outFile){
+    //Si no hay camino (no debería de pasar)
+    int curr = origin;
+    if(distAux[origin][destination] == -1){
+        outFile << "No hay una ruta entre las colonias" << endl;
     }
-    return merge;
+    outFile << coloniaNameMap[curr].nombre << " - ";
+    while(curr != destination){
+        curr = distAux[curr][destination];
+        if(curr != destination){
+            outFile << coloniaNameMap[curr].nombre << " - ";
+        } else{
+            outFile << coloniaNameMap[curr].nombre;
+        }
+    }
+    
 }
 
-void floydWarshall(vector<vector<int>> &dist, vector<vector<vector<int>>> &distAux)
+void floydWarshall(vector<vector<int>> &dist, vector<vector<int>> &distAux)
 {
     int n = dist.size();
     for (int k = 0; k < n; k++)
@@ -290,7 +297,7 @@ void floydWarshall(vector<vector<int>> &dist, vector<vector<vector<int>>> &distA
                     {
                         dist[i][j] = dist[i][k] + dist[k][j]; // Nueva distancia
                         // Guarda el nuevo recorrido
-                        distAux[i][j] = (mergePaths(distAux[i][k], distAux[k][j], k));
+                        distAux[i][j] = distAux[i][k];
                     }
             }
         }
@@ -302,13 +309,13 @@ void caminosCentrales(Graph &graph, ofstream &outFile)
 
     // Vector de distancias inicializado en infinito
     vector<vector<int>> dist(graph.V, vector<int>(graph.V, INF));
+    vector<vector<int>> distAux(graph.V, vector<int>(graph.V, -1));
     // El peso de un  nodo a sí mismo es 0
     for (int i = 0; i < graph.V; i++)
     {
         dist[i][i] = 0;
     }
     // Matriz auxiliar para guardar el recorrido de menor costo
-    vector<vector<vector<int>>> distAux(graph.V, vector<vector<int>>(graph.V));
     int cost;
     vector<int> coloniasIntermedias;
     pair<int, int> currEdge;
@@ -320,6 +327,8 @@ void caminosCentrales(Graph &graph, ofstream &outFile)
         currEdge = edge.second;
         dist[currEdge.first][currEdge.second] = currCost;
         dist[currEdge.second][currEdge.first] = currCost;
+        distAux[currEdge.first][currEdge.second] = currEdge.second;
+        distAux[currEdge.second][currEdge.first] = currEdge.first;
     }
     // Floyd warshall te dice la distancia más corta para todos los pares de origen destino
     floydWarshall(dist, distAux);
@@ -332,17 +341,9 @@ void caminosCentrales(Graph &graph, ofstream &outFile)
             // Si son colonias
             if (coloniaNameMap[coloniaOrigenIdx].esCentral && coloniaNameMap[coloniaDestinoIdx].esCentral)
             {
-                // Recorrido intermedio
-                coloniasIntermedias = distAux[coloniaOrigenIdx][coloniaDestinoIdx];
+                printPath(coloniaOrigenIdx, coloniaDestinoIdx, distAux, outFile);
                 // Costo del recorrido
                 cost = dist[coloniaOrigenIdx][coloniaDestinoIdx];
-                // Origen, intermedio, destino, costo
-                outFile << coloniaNameMap[coloniaOrigenIdx].nombre << " - ";
-                for (int &coloniaIntermedia : coloniasIntermedias)
-                {
-                    outFile << coloniaNameMap[coloniaIntermedia].nombre << " - ";
-                }
-                outFile << coloniaNameMap[coloniaDestinoIdx].nombre;
                 outFile << " (" << cost << ")" << endl;
             }
         }
