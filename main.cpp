@@ -126,12 +126,6 @@ void cableadoOptimo(Graph& graph, ofstream& outFile) {
     más intermedias. El programa debe desplegar la ruta a considerar así como el costo.
 */
 
-inline int safe_sum(int a, int b) {
-    if (a == INT_MAX || b == INT_MAX) return INT_MAX;   // any INF makes INF
-    if (a > INT_MAX - b) return INT_MAX;                // would overflow → clamp to INF
-    return a + b;
-}
-
 int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>>& nextBest) {
     // se cancelan los bits de las colonias centrales, solo revisamos las no centrales
     if ((mask & nonCentralMask) == nonCentralMask) return cost[pos][startingColonia];
@@ -145,11 +139,10 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector
     // Try visiting every city that has not been visited yet
     for (int i = 0; i < n; i++) {
         if ((mask & (1 << i)) == 0) {
-            if (cost[pos][i] == INT_MAX) continue; // Poda si no hay camino entre pos e i
-            // If city i is not visited, visit it and update the mask
-            int candidate = safe_sum(cost[pos][i], totalCost((mask | (1 << i)), i, n, cost, dp, nonCentralMask, startingColonia, nextBest));
-            if (candidate < ans) {
-                ans = candidate;
+            int testPath = totalCost((mask | (1 << i)), i, n, cost, dp, nonCentralMask, startingColonia, nextBest);
+            if (cost[pos][i] == INT_MAX || testPath == INT_MAX) continue;
+            if (cost[pos][i] + testPath < ans) {
+                ans = cost[pos][i] + testPath;
                 bestNext = i;
             }
         }
@@ -160,7 +153,6 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector
 }
 
 void rutaOptima(Graph& graph, ofstream& outFile) {
-    // build cost matrix
     vector<vector<int>> cost(graph.V, vector<int>(graph.V, INT_MAX));
     for (int i = 0; i < graph.V; i++) {
         cost[i][i] = 0;
