@@ -200,7 +200,6 @@ void rutaOptima(Graph& graph, ofstream& outFile, vector<vector<int>> &dist, vect
 
     // Reconstruir la ruta
     int pos = startingColonia;
-    int first = true;
     vector<int> path;
     path.push_back(startingColonia); // agregar el punto de inicio
     while ((startMask & nonCentralMask) != nonCentralMask)
