@@ -10,7 +10,7 @@ Costo Total: 50
 -------------------
 2 – La ruta óptima.
 
-Purisima - Tecnologico - AltaVista - Roma - Purisima
+Purisima - Roma - AltaVista - Tecnologico - Purisima
 
 La Ruta Óptima tiene un costo total de: 123
 

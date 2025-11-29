@@ -251,8 +251,8 @@ void rutaOptima(Graph &graph, vector<vector<int>> &dist, vector<vector<int>> &di
     pathAid.push_back(startingColonia); // agregar el punto final
 
     //Reconstruir con Floyd Warshall startin colonia se agrega al final
-    for (int i = pathAid.size() - 2; i >= 0; i--){
-        addToPath(pathAid[i+1], pathAid[i], distAux, path);
+    for (int i = 1; i < pathAid.size(); i++){
+        addToPath(pathAid[i-1], pathAid[i], distAux, path);
     }
 
     // imprimir la ruta en orden
