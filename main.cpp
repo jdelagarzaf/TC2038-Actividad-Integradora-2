@@ -149,7 +149,7 @@ void cableadoOptimo(Graph &graph, ofstream &outFile)
 int totalCost(int mask, int pos, int n, vector<vector<int>> &dist, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>> &nextBest)
 {
     // se cancelan los bits de las colonias centrales, solo revisamos las no centrales
-    if ((mask & nonCentralMask) == nonCentralMask)
+    if (mask  == nonCentralMask)
         return dist[pos][startingColonia];
 
     int &memo = dp[mask][pos];
@@ -176,48 +176,61 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &dist, vector<vector
 }
 
 void rutaOptima(Graph& graph, ofstream& outFile, vector<vector<int>> &dist, vector<vector<int>> &distAux) {
-    int nonCentralMask = 0;
-    int startingColonia = -1;
+    vector<int> nonCentralNodes;
     for (int i = 0; i < graph.V; i++)
     {
-        if (coloniaNameMap[i].esCentral == 0)
+        if (coloniaNameMap[i].esCentral == 0) nonCentralNodes.push_back(i);
+    }
+
+    // Utilizar el cost matrix de dist solo con las colonias no centrales para usar en TSP
+    vector<vector<int>> tspDist(nonCentralNodes.size(), vector<int>(nonCentralNodes.size(), INF));
+    for (int i = 0; i < nonCentralNodes.size(); i++)
+    {
+        for (int j = 0; j < nonCentralNodes.size(); j++)
         {
-            nonCentralMask |= (1 << i);
-            // seleccionar la primera colonia no central como punto de inicio
-            if (startingColonia == -1)
-            {
-                startingColonia = i;
-            }
+            tspDist[i][j] = dist[nonCentralNodes[i]][nonCentralNodes[j]];
         }
     }
 
-    vector<vector<int>> dp(1 << graph.V, vector<int>(graph.V, -1));
-    vector<vector<int>> nextBest(1 << graph.V, vector<int>(graph.V, -1));
+    vector<vector<int>> dp(1 << nonCentralNodes.size(), vector<int>(nonCentralNodes.size(), -1));
+    vector<vector<int>> nextBest(1 << nonCentralNodes.size(), vector<int>(nonCentralNodes.size(), -1));
 
-    int startMask = (1 << startingColonia);
-
-    int costo = totalCost(startMask, startingColonia, graph.V, dist, dp, nonCentralMask, startingColonia, nextBest);
+    int startMask = (1 << 0);
+    int completeMask = (1 << nonCentralNodes.size()) - 1;
+    int costo = totalCost(startMask, 0, nonCentralNodes.size(), tspDist, dp, completeMask, 0, nextBest);
 
     // Reconstruir la ruta
-    int pos = startingColonia;
+    int pos = 0;
     vector<int> path;
-    path.push_back(startingColonia); // agregar el punto de inicio
-    while ((startMask & nonCentralMask) != nonCentralMask)
+    path.push_back(0); // agregar el punto de inicio
+    while (startMask != completeMask)
     {
         int next = nextBest[startMask][pos];
         startMask |= (1 << next);
         pos = next;
         path.push_back(pos);
     }
-    path.push_back(startingColonia); // agregar el punto final
+    path.push_back(0); // agregar el punto final
+
+    // Convertir los índices de nonCentralNodes a índices globales de todas las colonias
+    vector<int> pathGlobal;
+    for (int idx : path) {
+        pathGlobal.push_back(nonCentralNodes[idx]);
+    }
 
     // imprimir la ruta en orden
-    for (int i = path.size() - 1; i >= 0; i--)
+    outFile << coloniaNameMap[pathGlobal[0]].nombre; // punto de inicio
+    for (int i = 0; i < pathGlobal.size(); i++)
     {
-        outFile << coloniaNameMap[path[i]].nombre;
-        if (i != 0)
+        if (i == pathGlobal.size() - 1) break; // Si es el último, no imprimir más
+
+        // Imprime las colonias que hay entre el camino
+        int current = pathGlobal[i];
+        int destination = pathGlobal[i + 1];
+        while (current != destination)
         {
-            outFile << " - ";
+            current = distAux[current][destination];
+            outFile << " - " << coloniaNameMap[current].nombre;
         }
     }
 
