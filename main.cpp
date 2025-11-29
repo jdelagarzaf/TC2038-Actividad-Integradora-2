@@ -304,20 +304,13 @@ void floydWarshall(vector<vector<int>> &dist, vector<vector<int>> &distAux)
     }
 }
 
-void caminosCentrales(Graph &graph, ofstream &outFile)
-{
-
-    // Vector de distancias inicializado en infinito
-    vector<vector<int>> dist(graph.V, vector<int>(graph.V, INF));
-    vector<vector<int>> distAux(graph.V, vector<int>(graph.V, -1));
-    // El peso de un  nodo a sí mismo es 0
+void distPreprocess(Graph &graph, vector<vector<int>> &dist, vector<vector<int>> &distAux ){
     for (int i = 0; i < graph.V; i++)
     {
         dist[i][i] = 0;
     }
     // Matriz auxiliar para guardar el recorrido de menor costo
-    int cost;
-    vector<int> coloniasIntermedias;
+    
     pair<int, int> currEdge;
     int currCost;
     // Se llena la matriz de distancias para floyd
@@ -330,6 +323,11 @@ void caminosCentrales(Graph &graph, ofstream &outFile)
         distAux[currEdge.first][currEdge.second] = currEdge.second;
         distAux[currEdge.second][currEdge.first] = currEdge.first;
     }
+}
+
+void caminosCentrales(Graph &graph, vector<vector<int>> &dist, vector<vector<int>> &distAux, ofstream &outFile)
+{
+    int cost;
     // Floyd warshall te dice la distancia más corta para todos los pares de origen destino
     floydWarshall(dist, distAux);
 
@@ -453,9 +451,16 @@ Graph readInputsAndProcess()
 
 int main()
 {
+
     ofstream outFile("checking2.txt");
 
     Graph graph = readInputsAndProcess();
+
+    vector<vector<int>> dist(graph.V, vector<int>(graph.V, INF));
+    vector<vector<int>> distAux(graph.V, vector<int>(graph.V, -1));
+
+    distPreprocess(graph, dist, distAux);
+    floydWarshall(dist, distAux);
 
     outFile << "-------------------" << endl;
     outFile << "1 – Cableado óptimo de nueva conexión." << endl
@@ -470,7 +475,7 @@ int main()
             << "-------------------" << endl;
     outFile << "3 – Caminos más cortos entre centrales." << endl
             << endl;
-    caminosCentrales(graph, outFile);
+    caminosCentrales(graph, dist, distAux, outFile);
     outFile << endl
             << "-------------------" << endl;
     outFile << "4 – Conexión de nuevas colonias." << endl
