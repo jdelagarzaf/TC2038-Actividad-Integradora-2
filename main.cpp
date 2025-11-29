@@ -300,8 +300,6 @@ void distPreprocess(Graph &graph, vector<vector<int>> &dist, vector<vector<int>>
 void caminosCentrales(Graph &graph, vector<vector<int>> &dist, vector<vector<int>> &distAux, ofstream &outFile)
 {
     int cost;
-    // Floyd warshall te dice la distancia más corta para todos los pares de origen destino
-    floydWarshall(dist, distAux);
 
     // Para todos los nodos con todos los nodos
     for (int coloniaOrigenIdx = 0; coloniaOrigenIdx < graph.V; coloniaOrigenIdx++)
