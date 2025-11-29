@@ -1,3 +1,4 @@
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -146,11 +147,33 @@ void cableadoOptimo(Graph &graph, ofstream &outFile)
     más intermedias. El programa debe desplegar la ruta a considerar así como el costo.
 */
 
-int totalCost(int mask, int pos, int n, vector<vector<int>> &dist, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>> &nextBest)
+inline int safe_sum(int a, int b)
+{
+    if (a == INT_MAX || b == INT_MAX)
+        return INT_MAX; // any INF makes INF
+    if (a > INT_MAX - b)
+        return INT_MAX; // would overflow → clamp to INF
+    return a + b;
+}
+
+void addToPath(int origin, int destination, vector<vector<int>> &distAux, vector<int> &path){
+    int curr = origin;
+    //No path (no debería de pasar)
+    if(distAux[origin][destination] == -1){
+        return;
+    }
+    //No se considera el primero porque se agrega como parte del preprocesamiento
+    while(curr != destination){
+        curr = distAux[curr][destination];
+        path.push_back(curr);
+    }
+}
+
+int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>> &distAux, vector<vector<int>> &nextBest)
 {
     // se cancelan los bits de las colonias centrales, solo revisamos las no centrales
-    if (mask  == nonCentralMask)
-        return dist[pos][startingColonia];
+    if ((mask & nonCentralMask) == nonCentralMask)
+        return cost[pos][startingColonia];
 
     int &memo = dp[mask][pos];
     if (memo != -1)
@@ -160,12 +183,21 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &dist, vector<vector
     int bestNext = -1;
 
     // Try visiting every city that has not been visited yet
-    for (int i = 0; i < n; i++) {
-        if ((mask & (1 << i)) == 0) {
-            int testPath = totalCost((mask | (1 << i)), i, n, dist, dp, nonCentralMask, startingColonia, nextBest);
-            if (dist[pos][i] == INT_MAX || testPath == INT_MAX) continue;
-            if (dist[pos][i] + testPath < ans) {
-                ans = dist[pos][i] + testPath;
+    for (int i = 0; i < n; i++)
+    {
+        if ((mask & (1 << i)) == 0)
+        {
+            if (cost[pos][i] == INT_MAX)
+                continue; // Poda si no hay camino entre pos e i (no debería de pasar)
+
+            if(coloniaNameMap[i].esCentral)
+                continue; //No visiita centrales
+
+            // If city i is not visited, visit it and update the mask
+            int candidate = safe_sum(cost[pos][i], totalCost((mask | (1 << i)), i, n, cost, dp, nonCentralMask, startingColonia, distAux, nextBest));
+            if (candidate < ans)
+            {
+                ans = candidate;
                 bestNext = i;
             }
         }
@@ -175,62 +207,59 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &dist, vector<vector
     return memo = ans;
 }
 
-void rutaOptima(Graph& graph, ofstream& outFile, vector<vector<int>> &dist, vector<vector<int>> &distAux) {
-    vector<int> nonCentralNodes;
+void rutaOptima(Graph &graph, vector<vector<int>> &dist, vector<vector<int>> &distAux, ofstream &outFile)
+{
+
+    int nonCentralMask = 0;
+    int startingColonia = -1;
     for (int i = 0; i < graph.V; i++)
     {
-        if (coloniaNameMap[i].esCentral == 0) nonCentralNodes.push_back(i);
-    }
-
-    // Utilizar el cost matrix de dist solo con las colonias no centrales para usar en TSP
-    vector<vector<int>> tspDist(nonCentralNodes.size(), vector<int>(nonCentralNodes.size(), INF));
-    for (int i = 0; i < nonCentralNodes.size(); i++)
-    {
-        for (int j = 0; j < nonCentralNodes.size(); j++)
+        if (coloniaNameMap[i].esCentral == 0)
         {
-            tspDist[i][j] = dist[nonCentralNodes[i]][nonCentralNodes[j]];
+            nonCentralMask |= (1 << i);
+            // seleccionar la primera colonia no central como punto de inicio
+            if (startingColonia == -1)
+            {
+                startingColonia = i;
+            }
         }
     }
 
-    vector<vector<int>> dp(1 << nonCentralNodes.size(), vector<int>(nonCentralNodes.size(), -1));
-    vector<vector<int>> nextBest(1 << nonCentralNodes.size(), vector<int>(nonCentralNodes.size(), -1));
+    vector<vector<int>> dp(1 << graph.V, vector<int>(graph.V, -1));
+    vector<vector<int>> nextBest(1 << graph.V, vector<int>(graph.V, -1));
+    vector<int> path = {startingColonia};
 
-    int startMask = (1 << 0);
-    int completeMask = (1 << nonCentralNodes.size()) - 1;
-    int costo = totalCost(startMask, 0, nonCentralNodes.size(), tspDist, dp, completeMask, 0, nextBest);
+    int startMask = (1 << startingColonia);
+
+    int costo = totalCost(startMask, startingColonia, graph.V, dist, dp, nonCentralMask, startingColonia, distAux, nextBest);
 
     // Reconstruir la ruta
-    int pos = 0;
-    vector<int> path;
-    path.push_back(0); // agregar el punto de inicio
-    while (startMask != completeMask)
+    int pos = startingColonia;
+    int first = true;
+    vector<int> pathAid;
+    pathAid.push_back(startingColonia); // agregar el punto de inicio
+    while ((startMask & nonCentralMask) != nonCentralMask)
     {
         int next = nextBest[startMask][pos];
         startMask |= (1 << next);
         pos = next;
-        path.push_back(pos);
+        pathAid.push_back(pos);
     }
-    path.push_back(0); // agregar el punto final
+    pathAid.push_back(startingColonia); // agregar el punto final
 
-    // Convertir los índices de nonCentralNodes a índices globales de todas las colonias
-    vector<int> pathGlobal;
-    for (int idx : path) {
-        pathGlobal.push_back(nonCentralNodes[idx]);
+    cout << coloniaNameMap[startingColonia].nombre << endl;
+    //Reconstruir con Floyd Warshall startin colonia se agrega al final
+    for (int i = pathAid.size() - 2; i >= 0; i--){
+        addToPath(pathAid[i+1], pathAid[i], distAux, path);
     }
 
     // imprimir la ruta en orden
-    outFile << coloniaNameMap[pathGlobal[0]].nombre; // punto de inicio
-    for (int i = 0; i < pathGlobal.size(); i++)
+    for (int i = 0; i < path.size(); i++)
     {
-        if (i == pathGlobal.size() - 1) break; // Si es el último, no imprimir más
-
-        // Imprime las colonias que hay entre el camino
-        int current = pathGlobal[i];
-        int destination = pathGlobal[i + 1];
-        while (current != destination)
+        outFile << coloniaNameMap[path[i]].nombre;
+        if (i != path.size()-1)
         {
-            current = distAux[current][destination];
-            outFile << " - " << coloniaNameMap[current].nombre;
+            outFile << " - ";
         }
     }
 
@@ -312,6 +341,8 @@ void distPreprocess(Graph &graph, vector<vector<int>> &dist, vector<vector<int>>
 void caminosCentrales(Graph &graph, vector<vector<int>> &dist, vector<vector<int>> &distAux, ofstream &outFile)
 {
     int cost;
+    // Floyd warshall te dice la distancia más corta para todos los pares de origen destino
+    floydWarshall(dist, distAux);
 
     // Para todos los nodos con todos los nodos
     for (int coloniaOrigenIdx = 0; coloniaOrigenIdx < graph.V; coloniaOrigenIdx++)
@@ -452,7 +483,7 @@ int main()
             << "-------------------" << endl;
     outFile << "2 – La ruta óptima." << endl
             << endl;
-    rutaOptima(graph, outFile, dist, distAux);
+    rutaOptima(graph,dist,distAux, outFile);
     outFile << endl
             << "-------------------" << endl;
     outFile << "3 – Caminos más cortos entre centrales." << endl
