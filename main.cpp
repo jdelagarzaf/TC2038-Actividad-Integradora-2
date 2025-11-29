@@ -247,7 +247,6 @@ void rutaOptima(Graph &graph, vector<vector<int>> &dist, vector<vector<int>> &di
     }
     pathAid.push_back(startingColonia); // agregar el punto final
 
-    cout << coloniaNameMap[startingColonia].nombre << endl;
     //Reconstruir con Floyd Warshall startin colonia se agrega al final
     for (int i = pathAid.size() - 2; i >= 0; i--){
         addToPath(pathAid[i+1], pathAid[i], distAux, path);
