@@ -7,4 +7,5 @@ Humberto Genaro Cisneros Salinas - A01723264
 
 Jorge Adrian de la Garza Flores - A00838816
 - Inciso 1. y 2.
+- Correción del código final
 - Entradas y Salidas
