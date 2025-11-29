@@ -1,3 +1,6 @@
+// Humberto Genaro Cisneros Salinas - A01723264
+// Jorge Adrián De la Garza Flores - A00838816
+// 28 de Noviembre 2025
 
 #include <iostream>
 #include <fstream>
