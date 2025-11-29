@@ -146,11 +146,11 @@ void cableadoOptimo(Graph &graph, ofstream &outFile)
     más intermedias. El programa debe desplegar la ruta a considerar así como el costo.
 */
 
-int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>> &nextBest)
+int totalCost(int mask, int pos, int n, vector<vector<int>> &dist, vector<vector<int>> &dp, int nonCentralMask, int startingColonia, vector<vector<int>> &nextBest)
 {
     // se cancelan los bits de las colonias centrales, solo revisamos las no centrales
     if ((mask & nonCentralMask) == nonCentralMask)
-        return cost[pos][startingColonia];
+        return dist[pos][startingColonia];
 
     int &memo = dp[mask][pos];
     if (memo != -1)
@@ -162,10 +162,10 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector
     // Try visiting every city that has not been visited yet
     for (int i = 0; i < n; i++) {
         if ((mask & (1 << i)) == 0) {
-            int testPath = totalCost((mask | (1 << i)), i, n, cost, dp, nonCentralMask, startingColonia, nextBest);
-            if (cost[pos][i] == INT_MAX || testPath == INT_MAX) continue;
-            if (cost[pos][i] + testPath < ans) {
-                ans = cost[pos][i] + testPath;
+            int testPath = totalCost((mask | (1 << i)), i, n, dist, dp, nonCentralMask, startingColonia, nextBest);
+            if (dist[pos][i] == INT_MAX || testPath == INT_MAX) continue;
+            if (dist[pos][i] + testPath < ans) {
+                ans = dist[pos][i] + testPath;
                 bestNext = i;
             }
         }
@@ -175,18 +175,7 @@ int totalCost(int mask, int pos, int n, vector<vector<int>> &cost, vector<vector
     return memo = ans;
 }
 
-void rutaOptima(Graph& graph, ofstream& outFile) {
-    vector<vector<int>> cost(graph.V, vector<int>(graph.V, INT_MAX));
-    for (int i = 0; i < graph.V; i++)
-    {
-        cost[i][i] = 0;
-    }
-    for (auto it : graph.edges)
-    {
-        cost[it.second.first][it.second.second] = it.first;
-        cost[it.second.second][it.second.first] = it.first;
-    }
-
+void rutaOptima(Graph& graph, ofstream& outFile, vector<vector<int>> &dist, vector<vector<int>> &distAux) {
     int nonCentralMask = 0;
     int startingColonia = -1;
     for (int i = 0; i < graph.V; i++)
@@ -207,7 +196,7 @@ void rutaOptima(Graph& graph, ofstream& outFile) {
 
     int startMask = (1 << startingColonia);
 
-    int costo = totalCost(startMask, startingColonia, graph.V, cost, dp, nonCentralMask, startingColonia, nextBest);
+    int costo = totalCost(startMask, startingColonia, graph.V, dist, dp, nonCentralMask, startingColonia, nextBest);
 
     // Reconstruir la ruta
     int pos = startingColonia;
@@ -453,7 +442,7 @@ int main()
             << "-------------------" << endl;
     outFile << "2 – La ruta óptima." << endl
             << endl;
-    rutaOptima(graph, outFile);
+    rutaOptima(graph, outFile, dist, distAux);
     outFile << endl
             << "-------------------" << endl;
     outFile << "3 – Caminos más cortos entre centrales." << endl
